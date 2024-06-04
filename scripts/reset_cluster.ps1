@@ -44,7 +44,7 @@ function Get-ClusterIPs {
     }
 
     # Extract IPs from workers
-    foreach ($worker in $clusterData.workers.nodes) {
+    foreach ($worker in $clusterData.worker.nodes) {
         $ips += $worker.ip.Split('/')[0]
     }
 
