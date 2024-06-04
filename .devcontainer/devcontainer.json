@@ -1,0 +1,10 @@
+{
+    "build": { "dockerfile": "Containerfile" },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.powershell"
+            ]
+        }
+    }
+}
