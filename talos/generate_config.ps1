@@ -125,7 +125,7 @@ function GenerateTalosConfig {
         [string]$clusterName,
         [string]$clusterEndpoint
     )
-    $command = "talosctl gen config ${clusterName} ${clusterEndpoint} --force --output ${outputPath} --with-secrets ${secretFilePath} --config-patch @patches/all.yaml --config-patch-control-plane @patches/controlplane.yaml --config-patch-worker @patches/worker.yaml"
+    $command = "talosctl gen config ${clusterName} ${clusterEndpoint} --force --output ${outputPath} --with-secrets ${secretFilePath} --config-patch @talos/patches/all.yaml --config-patch-control-plane @talos/patches/controlplane.yaml --config-patch-worker @talos/patches/worker.yaml"
     Invoke-Expression $command
 }
 
