@@ -3,4 +3,3 @@
   value:
   - kube-system
   - rook-ceph
-#  - metallb
