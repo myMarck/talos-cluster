@@ -1,3 +1,4 @@
+---
 - op: add
   path: /cluster/apiServer/admissionControl/0/configuration/exemptions/namespaces
   value:
