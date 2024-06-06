@@ -43,19 +43,23 @@ function GenerateControlPlanePatches {
 
     foreach ($node in $controlPlaneNodes) {
         $g_cp_node_file = "${outputPath}\controlplane-$($node.name).yaml"
-        $yamlContent = Get-Content -Raw -Path ".\patches\network_template.yaml"
-        $yamlObject = $yamlContent | ConvertFrom-Yaml
-        $yamlObject[0]["value"]["interfaces"][0]["addresses"] = @( $node.ip )
-        $yamlObject[0]["value"]["interfaces"][0]["vip"] = @{ "ip" = $vip }
-        $newElements = @(
+        @(
+            @{
+                op    = "add"
+                path  = "/machine/network/interfaces/0/addresses"
+                value = @( $node.ip )
+            },
+            @{
+                op    = "add"
+                path  = "/machine/network/interfaces/0/vip"
+                value = @{ "ip" = $vip }
+            },
             @{
                 op    = "add"
                 path  = "/machine/network/hostname"
                 value = $node.name
             }
-        )
-        $yamlObject += $newElements
-        $yamlObject | ConvertTo-Yaml | Out-File -FilePath $g_cp_node_file -Force
+        ) | ConvertTo-Yaml | Out-File -FilePath $g_cp_node_file -Force
     }
 }
 
@@ -66,18 +70,18 @@ function GenerateWorkerNodePatches {
     )
     foreach ($node in $workerNodes) {
         $g_cp_node_file = "${outputPath}\worker-$($node.name).yaml"
-        $yamlContent = Get-Content -Raw -Path ".\patches\network_template.yaml"
-        $yamlObject = $yamlContent | ConvertFrom-Yaml
-        $yamlObject[0]["value"]["interfaces"][0]["addresses"] = @( $node.ip )
-        $newElements = @(
+        @(
+            @{
+                op    = "add"
+                path  = "/machine/network/interfaces/0/addresses"
+                value = @( $node.ip )
+            },
             @{
                 op    = "add"
                 path  = "/machine/network/hostname"
                 value = $node.name
             }
-        )
-        $yamlObject += $newElements
-        $yamlObject | ConvertTo-Yaml | Out-File -FilePath $g_cp_node_file -Force
+        ) | ConvertTo-Yaml | Out-File -FilePath $g_cp_node_file -Force
     }
 }
 
