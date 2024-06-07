@@ -137,6 +137,4 @@ ApplyConfig -nodeIps $workerIps -patchFolder $generatedFolderPaths[2] -baseFile 
 UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticControlPlaneIPs -type "endpoint"
 UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticWorkerIPs -type "nodes"
 
-Invoke-Expression "talosctl config merge ${talosConfigPath}"
-
 BootstrapCluster -bootstrapIP $bootstrapIP
