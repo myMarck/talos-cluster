@@ -2,12 +2,14 @@ FROM mcr.microsoft.com/powershell:latest
 
 # https://github.com/siderolabs/talos/releases
 ARG TALOS_VERSION="1.7.4"
+# https://github.com/helm/helm/releases
+ARG HELM_VERSION="3.15.1"
+# https://github.com/argoproj/argo-cd/releases
+ARG ARGOCD_VERSION="2.11.3"
 # https://dl.k8s.io/release/stable.txt
 ARG KUBECTL_VERSION="1.30.1"
 # https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
 ARG CILIUM_CLI_VERSION="0.16.9"
-# https://github.com/helm/helm/releases
-ARG HELM_VERSION="3.15.1"
 
 # Note: The DEBIAN_FRONTEND export avoids warnings when you go on to work with your container.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
@@ -29,4 +31,8 @@ RUN  curl -LO  "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
 RUN curl -LO "https://github.com/cilium/cilium-cli/releases/download/v${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz" \
     && tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin \
     && rm cilium-linux-amd64.tar.gz
+    
+RUN curl -LO "https://github.com/argoproj/argo-cd/releases/download/v${ARGOCD_VERSION}/argocd-linux-amd64" \
+    && install -m 555 argocd-linux-amd64 /usr/local/bin/argocd \
+    && rm argocd-linux-amd64
     
