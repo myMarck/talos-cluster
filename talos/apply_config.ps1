@@ -72,14 +72,14 @@ function BootstrapCluster {
     #Attempt to bootstrap until successful
     do {
         Start-Sleep -Seconds 3
-        Write-Host "Trying to bootstrap server with IP: $bootstrapIP ..."
-        $command = "talosctl bootstrap --nodes $bootstrapIP"
+        Write-Host "Trying to bootstrap server with IP: ${bootstrapIP} ..."
+        $command = "talosctl bootstrap --nodes ${bootstrapIP}"
         Invoke-Expression $command 
     } while ($LASTEXITCODE -ne 0)
     
     Write-Host "Bootstrap successful."    
 
-    $command = "talosctl -n $bootstrapIP kubeconfig"
+    $command = "talosctl -n ${bootstrapIP} kubeconfig"
     Invoke-Expression $command
     Write-Host "kubectl configured."            
 }

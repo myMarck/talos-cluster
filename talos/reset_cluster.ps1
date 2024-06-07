@@ -109,16 +109,10 @@ if (-not (ValidateCommands $commands)) {
     return
 }
 
-$configFilePaths = @(
-    $(Join-Path $HOME ".talos\config"),
-    $(Join-Path $HOME ".kube\config")
-)
 $ips = Get-ClusterIPs -clusterData $clusterData
 $ipsString = $ips -join ","
 
 # Execute talosctl reset command
-$command = "talosctl --talosconfig $($configFilePaths[0]) --nodes $ipsString reset --timeout 60s --reboot --graceful=false"
+$command = "talosctl --nodes $ipsString reset --timeout 60s --reboot --graceful=false"
 Write-Host $command
 Invoke-Expression $command
-
-Remove-ConfigFiles -filePaths $configFilePaths

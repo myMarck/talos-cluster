@@ -1,5 +1,5 @@
 # Talos cluster installation and configuration
-This repository contains PowerShell scripts to install and configure a Talos cluster.
+This repository contains PowerShell scripts to bootstrap a Talos cluster.
 ## Prerequisites
 
 Before running the script, either use devcontainer or ensure that the following tools are installed and configured on your machine:
@@ -10,4 +10,9 @@ Before running the script, either use devcontainer or ensure that the following 
     
 ## Order
   ./talos/generate_config.ps1
-  ./talos/apply_config -controlPlaneIps 192.168.1.217 -workerIps  192.168.1.173,192.168.1.195,192.168.1.242
+  ./talos/apply_config -controlPlaneIps <dhcp_ip> -workerIps  <dhcp_ip>,<dhcp_ip>,<dhcp_ip>
+  ./cilium/apply_config.ps1
+  
+
+## Reset
+  ./talos/reset_cluster.ps1
