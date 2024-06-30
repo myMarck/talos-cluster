@@ -3,7 +3,7 @@ Invoke-Expression $command
 
 $command = "helm install " + `
 "cilium cilium/cilium " + `
-"--version 1.15.5 " + `
+"--version 1.15.6 " + `
 "--namespace kube-system " + `
 "--set ipam.mode=kubernetes " + `
 "--set=kubeProxyReplacement=true " + `

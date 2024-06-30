@@ -3,6 +3,9 @@
     "build": { "dockerfile": "Containerfile" },
     "customizations": {
         "vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/opt/microsoft/powershell/7/pwsh"
+            },            
             "extensions": [
                 "ms-vscode.powershell"
             ]
