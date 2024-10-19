@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cilium-helm-repo
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: Cillium
+  project: bootstrap
+  url: https://helm.cilium.io
+  type: helm
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: talos-cluster-git-repo
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: 
+  project: bootstrap
+  url: https://github.com/myMarck/talos-cluster.git
+  type: git
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: talos-cluster-git-repo
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: kubernetes-helm-git-repo
+  project: bootstrap
+  url: https://github.com/myMarck/kubernetes-helm.git
+  type: git
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bootstrap
+spec:
+  description: Project for bootstrapping kubernetes cluster components.
+  sourceRepos:
+  - https://helm.cilium.io
+  - https://github.com/myMarck/talos-cluster.git
+  - https://github.com/myMarck/kubernetes-helm.git
+  destinations:
+  - namespace: kube-system
+    server: https://kubernetes.default.svc
+  - namespace: argocd
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
