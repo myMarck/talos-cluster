@@ -1,6 +1,30 @@
 apiVersion: v1
 kind: Secret
 metadata:
+  name: rook-release-helm-repo
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: rook-release
+  project: bootstrap
+  url: https://charts.rook.io/release
+  type: helm
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sealed-secrets-helm-repo
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: sealed-secrets
+  project: bootstrap
+  url: https://bitnami-labs.github.io/sealed-secrets
+  type: helm
+---
+apiVersion: v1
+kind: Secret
+metadata:
   name: jetstack-helm-repo
   labels:
     argocd.argoproj.io/secret-type: repository
@@ -55,6 +79,7 @@ spec:
   sourceRepos:
   - https://helm.cilium.io
   - https://charts.jetstack.io
+  - https://bitnami-labs.github.io/sealed-secrets
   - https://github.com/myMarck/talos-cluster.git
   - https://github.com/myMarck/kubernetes-helm.git
   destinations:

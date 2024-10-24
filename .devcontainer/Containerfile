@@ -2,12 +2,14 @@ FROM mcr.microsoft.com/powershell:latest
 
 # https://github.com/siderolabs/talos/releases
 ARG TALOS_VERSION="1.8.1"
+# https://github.com/bitnami-labs/sealed-secrets/releases
+ARG SEALED_SECRETS_VERSION="0.27.1"
 # https://github.com/helm/helm/releases
 ARG HELM_VERSION="3.16.2"
 # https://github.com/argoproj/argo-cd/releases
-ARG ARGOCD_VERSION="2.12.4"
+ARG ARGOCD_VERSION="2.12.6"
 # https://dl.k8s.io/release/stable.txt
-ARG KUBECTL_VERSION="1.31.1"
+ARG KUBECTL_VERSION="1.31.2"
 # https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
 ARG CILIUM_CLI_VERSION="0.16.19"
 
@@ -19,18 +21,27 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN pwsh -Command "Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted; Install-Module -Name powershell-yaml -Scope AllUsers -Repository PSGallery -Force -AcceptLicense"
 
 RUN  curl -LO "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
-    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm -fr kubectl
 
 RUN  curl -LO "https://github.com/siderolabs/talos/releases/download/v${TALOS_VERSION}/talosctl-linux-amd64" \
-    && install -o root -g root -m 0755 talosctl-linux-amd64 /usr/local/bin/talosctl
+    && install -o root -g root -m 0755 talosctl-linux-amd64 /usr/local/bin/talosctl \
+    && rm -fr talosctl-linux-amd64
+
+RUN  curl -LO  "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${SEALED_SECRETS_VERSION}/kubeseal-${SEALED_SECRETS_VERSION}-linux-amd64.tar.gz" \
+    && tar -zxvf "kubeseal-${SEALED_SECRETS_VERSION}-linux-amd64.tar.gz" kubeseal \
+    && install -o root -g root -m 0755 kubeseal /usr/local/bin/kubeseal \
+    && rm -rf kubeseal "kubeseal-${SEALED_SECRETS_VERSION}-linux-amd64.tar.gz"
 
 RUN  curl -LO  "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
-    && tar -zxvf helm-v${HELM_VERSION}-linux-amd64.tar.gz \
-    && install -o root -g root -m 0755 linux-amd64/helm /usr/local/bin/helm
+    && tar -zxvf "helm-v${HELM_VERSION}-linux-amd64.tar.gz" linux-amd64/helm \
+    && install -o root -g root -m 0755 linux-amd64/helm /usr/local/bin/helm \
+    && rm -rf linux-amd64 "helm-v${HELM_VERSION}-linux-amd64.tar.gz"
 
 RUN curl -LO "https://github.com/cilium/cilium-cli/releases/download/v${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz" \
-    && tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin \
-    && rm cilium-linux-amd64.tar.gz
+    && tar -zxvf cilium-linux-amd64.tar.gz cilium \
+    && install -o root -g root -m 0755 cilium /usr/local/bin/cilium \
+    && rm -fr cilium cilium-linux-amd64.tar.gz
     
 RUN curl -LO "https://github.com/argoproj/argo-cd/releases/download/v${ARGOCD_VERSION}/argocd-linux-amd64" \
     && install -m 555 argocd-linux-amd64 /usr/local/bin/argocd \
