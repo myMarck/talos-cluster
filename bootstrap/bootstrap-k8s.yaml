@@ -11,9 +11,6 @@ spec:
     repoURL: https://github.com/myMarck/kubernetes-helm.git
     path: bootstrap-k8s
     targetRevision: main
-    helm:
-      valueFiles:
-        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
