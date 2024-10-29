@@ -3,7 +3,7 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 # The namespace that ArgoCD will be installed in
 $argocd_namespace = "argocd"
 
-$argocd_version = "2.12.4"
+$argocd_version = "2.12.6"
 
 # Define the array of commands to validate
 $commands = @( "kubectl" )
