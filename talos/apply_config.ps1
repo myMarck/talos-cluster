@@ -1,14 +1,24 @@
 # Parse runtime parameters
 param (
     [string]$clusterfile = "./cluster.json",
-    [parameter(mandatory=$true)][String[]]$controlPlaneIps,
-    [parameter(mandatory=$true)][String[]]$workerIps,
+    [parameter(mandatory = $true)][String[]]$controlPlaneIps,
+    [parameter(mandatory = $true)][String[]]$workerIps,
     [switch]$h,
     [switch]$help
 )
 
 # Load the powershell-yaml module
 Import-Module powershell-yaml
+Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
+
+# Define the array of commands to validate
+$commands = @( "talosctl" )
+
+$generatedFolderPaths = @( 
+    ".generated/manifests",
+    ".generated/controlplane",
+    ".generated/worker"
+)
 
 function ApplyConfig {
     param (
@@ -35,31 +45,6 @@ function UpdateTalosConfig {
     $endpointArguments = $IPs -join " "
     $command = "talosctl --talosconfig ${talosConfigPath} config ${type} $endpointArguments"
     Invoke-Expression $command 
-}
-
-# Function to validate an array of commands
-function ValidateCommands {
-    param (
-        [string[]]$commands
-    )
-
-    foreach ($command in $commands) {
-        $commandPath = $command
-
-        # Check if the command exists in the specified path
-        if (-not (Test-Path $commandPath)) {
-            # Check if the command exists in the script root
-            $commandPath = Join-Path $PSScriptRoot $command
-            if (-not (Test-Path $commandPath)) {
-                # Check if the command exists in the system's PATH
-                if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
-                    Write-Error "${command} command not found."
-                    return $false
-                }
-            }
-        }
-    }
-    return $true
 }
 
 function BootstrapCluster {
@@ -95,46 +80,38 @@ function Show-Help {
     Exit
 }
 
-############ Actual script starts here ############
+# Main execution function
+function Main {
+    if ($h -or $help) {
+        Show-Help
+    }
 
-if ($h -or $help) {
-    Show-Help
+    if (-not (Test-CommandsExist -Commands $commands)) { return }
+    
+    # Parse the cluster.json file
+    try {
+        $clusterData = Get-Content -Path $clusterfile | ConvertFrom-Json
+    }
+    catch {
+        Write-Host "Error: Failed to parse JSON from '${clusterfile}'. Please ensure the file is a valid JSON."
+        Exit 1
+    }
+
+    $bootstrapIP = $clusterData.controlplane.nodes[0].ip.Split('/')[0]
+    $staticControlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.ip.Split('/')[0] }
+    $staticWorkerIPs = $clusterData.worker.nodes | ForEach-Object { $_.ip.Split('/')[0] }
+    $talosConfigPath = "$($generatedFolderPaths[0])/talosconfig"
+    $controlPlaneFile = "$($generatedFolderPaths[0])/controlplane.yaml"
+    $workerFile = "$($generatedFolderPaths[0])/worker.yaml"
+
+    ApplyConfig -nodeIps $controlPlaneIps -patchFolder $generatedFolderPaths[1] -baseFile $controlPlaneFile
+    ApplyConfig -nodeIps $workerIps -patchFolder $generatedFolderPaths[2] -baseFile $workerFile
+
+    UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticControlPlaneIPs -type "endpoint"
+    UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticWorkerIPs -type "nodes"
+
+    BootstrapCluster -bootstrapIP $bootstrapIP
 }
 
-# Parse the cluster.json file
-try {
-    $clusterData = Get-Content -Path $clusterfile | ConvertFrom-Json
-}
-catch {
-    Write-Host "Error: Failed to parse JSON from '${clusterfile}'. Please ensure the file is a valid JSON."
-    Exit 1
-}
-
-# Define the array of commands to validate
-$commands = @( "talosctl" )
-
-# Validate the commands
-if (-not (ValidateCommands $commands)) {
-    return
-}
-
-$generatedFolderPaths = @( 
-    ".generated/manifests",
-    ".generated/controlplane",
-    ".generated/worker"
-    )
-
-$bootstrapIP = $clusterData.controlplane.nodes[0].ip.Split('/')[0]
-$staticControlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.ip.Split('/')[0] }
-$staticWorkerIPs = $clusterData.worker.nodes | ForEach-Object { $_.ip.Split('/')[0] }
-$talosConfigPath = "$($generatedFolderPaths[0])/talosconfig"
-$controlPlaneFile = "$($generatedFolderPaths[0])/controlplane.yaml"
-$workerFile = "$($generatedFolderPaths[0])/worker.yaml"
-
-ApplyConfig -nodeIps $controlPlaneIps -patchFolder $generatedFolderPaths[1] -baseFile $controlPlaneFile
-ApplyConfig -nodeIps $workerIps -patchFolder $generatedFolderPaths[2] -baseFile $workerFile
-
-UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticControlPlaneIPs -type "endpoint"
-UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticWorkerIPs -type "nodes"
-
-BootstrapCluster -bootstrapIP $bootstrapIP
+# Execute the main function
+Main

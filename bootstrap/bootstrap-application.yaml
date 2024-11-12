@@ -1,0 +1,14 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bootstrap
+  namespace: argocd
+spec:
+  destination:
+    namespace: argocd
+    server: https://kubernetes.default.svc
+  project: bootstrap
+  source:
+    path: ./argocd/
+    repoURL: https://github.com/myMarck/kubernetes-helm.git
+    targetRevision: HEAD

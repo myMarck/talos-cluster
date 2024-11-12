@@ -3,15 +3,15 @@ FROM mcr.microsoft.com/powershell:latest
 # https://github.com/siderolabs/talos/releases
 ARG TALOS_VERSION="1.8.2"
 # https://github.com/bitnami-labs/sealed-secrets/releases
-ARG SEALED_SECRETS_VERSION="0.27.1"
+ARG SEALED_SECRETS_VERSION="0.27.2"
 # https://github.com/helm/helm/releases
 ARG HELM_VERSION="3.16.2"
 # https://github.com/argoproj/argo-cd/releases
-ARG ARGOCD_VERSION="2.12.6"
+ARG ARGOCD_VERSION="2.13.0"
 # https://dl.k8s.io/release/stable.txt
 ARG KUBECTL_VERSION="1.31.2"
 # https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
-ARG CILIUM_CLI_VERSION="0.16.19"
+ARG CILIUM_CLI_VERSION="0.16.20"
 
 # Note: The DEBIAN_FRONTEND export avoids warnings when you go on to work with your container.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \

@@ -74,15 +74,27 @@ function New-Namespace {
     }
 }
 
-  function Test-NamespaceExist {
+function Test-NamespaceExist {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
         [string]$Namespace
     )
 
-    $command = "kubectl get namespace $Namespace -o jsonpath=`"{.metadata.name}`""
+    $command = "kubectl get ns $Namespace -o jsonpath=`"{.metadata.name}`" --ignore-not-found"
     $namespaceExists = Invoke-Expression $command
     return $namespaceExists
 
+}
+
+function Install-Repo {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$RepoName,
+        [Parameter(Mandatory = $true)]
+        [string]$RepoURL
+    )
+    $command = "helm repo add $RepoName $RepoURL | out-null"
+    Invoke-Expression $command
 }

@@ -6,7 +6,7 @@ Before running the script, either use devcontainer or ensure that the following 
     Powershell: https://github.com/PowerShell/PowerShell 
     talosctl: The Talos control tool. You can install it from the official Talos documentation here.
     kubectl: The Kubernetes command-line tool. You can install it from the official Kubernetes documentation here.
-    create cluster.json
+    argocd cli: Argo CD CLI. You can install it from here.
 
     if devcontainer is not used the following env should be set manually
     export TALOSCONFIG="/workspaces/talos-cluster/.generated/manifests/talosconfig"
@@ -15,6 +15,7 @@ Before running the script, either use devcontainer or ensure that the following 
 ## Order
   ./talos/generate_config.ps1
   ./talos/apply_config -controlPlaneIps <dhcp_ip> -workerIps  <dhcp_ip>,<dhcp_ip>,<dhcp_ip>
+  ./cilium/apply_config.ps1
   ./bootstrap/apply_config.ps1
 
 ## Reset

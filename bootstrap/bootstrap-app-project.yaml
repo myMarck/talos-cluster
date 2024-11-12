@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bootstrap
+spec:
+  description: Minium Applications that are part of bootstraping Argo CD.
+  sourceRepos:
+  - https://github.com/myMarck/kubernetes-helm.git
+  destinations:
+  - namespace: argocd
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'

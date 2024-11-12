@@ -7,31 +7,10 @@ param (
 
 # Load the powershell-yaml module
 Import-Module powershell-yaml
+Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 
-# Function to validate an array of commands
-function ValidateCommands {
-    param (
-        [string[]]$commands
-    )
-
-    foreach ($command in $commands) {
-        $commandPath = $command
-
-        # Check if the command exists in the specified path
-        if (-not (Test-Path $commandPath)) {
-            # Check if the command exists in the script root
-            $commandPath = Join-Path $PSScriptRoot $command
-            if (-not (Test-Path $commandPath)) {
-                # Check if the command exists in the system's PATH
-                if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
-                    Write-Error "${command} command not found."
-                    return $false
-                }
-            }
-        }
-    }
-    return $true
-}
+# Define the array of commands to validate
+$commands = @( "talosctl" )
 
 # Function to loop over an array of control plane nodes
 function GenerateControlPlanePatches {
@@ -139,51 +118,48 @@ function Show-Help {
     Exit
 }
 
-############ Actual script starts here ############
+function Main {
+    if ($h -or $help) {
+        Show-Help
+    }
 
-if ($h -or $help) {
-    Show-Help
-}
+    if (-not (Test-CommandsExist -Commands $commands)) { return }
 
-# Verify if path is a valid file path and points to an existing file
-if (-not (Test-Path -Path $clusterfile -PathType Leaf)) {
-    Write-Host "Error: The specified path '${clusterfile}' is not a valid file path or the file does not exist."
-    Show-Help
-}
+    # Verify if path is a valid file path and points to an existing file
+    if (-not (Test-Path -Path $clusterfile -PathType Leaf)) {
+        Write-Host "Error: The specified path '${clusterfile}' is not a valid file path or the file does not exist."
+        Show-Help
+    }
 
-# Parse the cluster.json file
-try {
-    $clusterData = Get-Content -Path $clusterfile | ConvertFrom-Json
-}
-catch {
-    Write-Host "Error: Failed to parse JSON from '${clusterfile}'. Please ensure the file is a valid JSON."
-    Exit 1
-}
+    # Parse the cluster.json file
+    try {
+        $clusterData = Get-Content -Path $clusterfile | ConvertFrom-Json
+    }
+    catch {
+        Write-Host "Error: Failed to parse JSON from '${clusterfile}'. Please ensure the file is a valid JSON."
+        Exit 1
+    }
 
-# Define the array of commands to validate
-$commands = @( "talosctl" )
-
-# Validate the commands
-if (-not (ValidateCommands $commands)) {
-    return
-}
-
-# All things are validated and good to go
-$generatedFolderPaths = @( 
-    ".generated/manifests",
-    ".generated/controlplane",
-    ".generated/worker"
+    # All things are validated and good to go
+    $generatedFolderPaths = @( 
+        ".generated/manifests",
+        ".generated/controlplane",
+        ".generated/worker"
     )
 
-$secretFilePath = "secrets.yaml"
-$controlPlaneNodes = $clusterData.controlplane.nodes
-$controlPlaneVip = $clusterData.controlplane.vip
-$workerNodes = $clusterData.worker.nodes
-$clusterName = $clusterData.clustername
-$clusterEndpoint = "https://${controlPlaneVip}:6443"
+    $secretFilePath = "secrets.yaml"
+    $controlPlaneNodes = $clusterData.controlplane.nodes
+    $controlPlaneVip = $clusterData.controlplane.vip
+    $workerNodes = $clusterData.worker.nodes
+    $clusterName = $clusterData.clustername
+    $clusterEndpoint = "https://${controlPlaneVip}:6443"
 
-GenerateTempFolders -folders $generatedFolderPaths
-GenerateControlPlanePatches -outputPath $generatedFolderPaths[1] -controlPlaneNodes $controlPlaneNodes -vip $controlPlaneVip
-GenerateWorkerNodePatches -outputPath $generatedFolderPaths[2] -workerNodes $workerNodes
-GenerateTalosSecret -secretFilePath $secretFilePath
-GenerateTalosConfig -outputPath $generatedFolderPaths[0] -secretFilePath $secretFilePath -clusterName $clusterName -clusterEndpoint $clusterEndpoint
+    GenerateTempFolders -folders $generatedFolderPaths
+    GenerateControlPlanePatches -outputPath $generatedFolderPaths[1] -controlPlaneNodes $controlPlaneNodes -vip $controlPlaneVip
+    GenerateWorkerNodePatches -outputPath $generatedFolderPaths[2] -workerNodes $workerNodes
+    GenerateTalosSecret -secretFilePath $secretFilePath
+    GenerateTalosConfig -outputPath $generatedFolderPaths[0] -secretFilePath $secretFilePath -clusterName $clusterName -clusterEndpoint $clusterEndpoint
+}
+
+# Execute the main function
+Main
