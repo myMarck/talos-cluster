@@ -137,6 +137,29 @@ function New-Application {
     }
 }
 
+function Sync-Application{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$ApplicationName
+    )
+    try {
+        $syncResult = argocd app sync $ApplicationName `
+            --port-forward-namespace argocd `
+            --port-forward `
+            2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to sync Application. Error: $syncResult"
+            return
+        }
+        Write-Host "Synced ArgoCD Application: $ApplicationName."
+    }
+    catch {
+        Write-Error "Exception occurred while syncing Application: $_"
+        return
+    }
+}
 function New-SealedSecret {
     [CmdletBinding()]
     param (
@@ -188,6 +211,7 @@ function Main {
         Write-Host "ArgoCD Application 'bootstrap' already exists."
     } else {
         New-Application -ApplicationFile "$PSScriptRoot/bootstrap-application.yaml"
+        Sync-Application -ApplicationName "bootstrap"
     }
     Disconnect-ArgoCD
 }
