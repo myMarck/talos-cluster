@@ -44,47 +44,68 @@ function Test-CommandsExist {
     return $true
 }
 
-<#
-.SYNOPSIS
-Creates a Kubernetes namespace if it does not already exist.
-
-.DESCRIPTION
-The `Create-Namespace` function checks if a specified Kubernetes namespace exists. If the namespace does not exist, it creates the namespace. This function uses `kubectl` commands to interact with the Kubernetes cluster.
-
-.PARAMETER Namespace
-The name of the Kubernetes namespace to check and create if it does not exist.
-
-.EXAMPLE
-PS> New-Namespace -Namespace "my-namespace"
-Checks if the "my-namespace" exists in the Kubernetes cluster. If it does not exist, the function creates it.
-
-.NOTES
-This function requires `kubectl` to be installed and configured to interact with your Kubernetes cluster.
-#>
-function New-Namespace {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Namespace
-    )
-
-    if (-not (Test-NamespaceExist -Namespace $Namespace)) {
-        $command = "kubectl create namespace $Namespace 2>&1"
-        Invoke-Expression $command
-    }
-}
-
-function Test-NamespaceExist {
+function Test-ResourceExist {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$Namespace
+        [string]$Namespace,
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceType,
+        [Parameter(Mandatory = $true)]
+        [string]$ResourceName
     )
 
-    $command = "kubectl get ns $Namespace -o jsonpath=`"{.metadata.name}`" --ignore-not-found"
-    $namespaceExists = Invoke-Expression $command
-    return $namespaceExists
+    try {
+        # Execute kubectl command to check for the resource
+        $result = kubectl get $ResourceType $ResourceName -n $Namespace --ignore-not-found -o jsonpath="{.metadata.name}" 2>&1
 
+        # Check for errors
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "An error occurred while checking for $ResourceType '$ResourceName' in namespace '$Namespace'. Error: $result"
+            return $false
+        }
+
+        # Determine if the resource exists
+        if ($result -eq $ResourceName) {
+            return $true
+        } else {
+            return $false
+        }
+    } catch {
+        Write-Error "Exception occurred: $_"
+        return $false
+    }
+}
+
+function Test-SecretExist {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Namespace,
+        [Parameter(Mandatory = $true)]
+        [string]$SecretName
+    )
+
+    try {
+        # Execute kubectl command to check for the secret
+        $secret = kubectl get secret $SecretName -n $Namespace --ignore-not-found -o jsonpath="{.metadata.name}" 2>&1
+
+        # Check for errors
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "An error occurred while checking for secret '$SecretName' in namespace '$Namespace'. Error: $secret"
+            return $false
+        }
+
+        # Determine if the secret exists
+        if ($secret -eq $SecretName) {
+            return $true
+        } else {
+            return $false
+        }
+    } catch {
+        Write-Error "Exception occurred: $_"
+        return $false
+    }
 }
 
 function Install-Repo {

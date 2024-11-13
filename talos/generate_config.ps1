@@ -91,7 +91,7 @@ function GenerateTalosSecret {
             Invoke-Expression $command
         }
         catch {
-            Write-Error "Failed to create secret: ${folder}"
+            Write-Error "Failed to create secret"
             Exit 1
         }
     }
@@ -147,7 +147,7 @@ function Main {
         ".generated/worker"
     )
 
-    $secretFilePath = "secrets.yaml"
+    $secretFilePath = "talos-secrets.yaml"
     $controlPlaneNodes = $clusterData.controlplane.nodes
     $controlPlaneVip = $clusterData.controlplane.vip
     $workerNodes = $clusterData.worker.nodes

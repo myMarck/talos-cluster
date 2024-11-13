@@ -34,7 +34,12 @@ function Install-Cilium {
 function Main {
     if (-not (Test-CommandsExist -Commands $commands)) { return }
     Install-Repo -RepoName "cilium" -RepoURL "https://helm.cilium.io/"
-    Install-Cilium -Version $cilium_chart_version
+    if (Test-ResourceExist -Namespace "kube-system" -ResourceType "daemonset" -ResourceName "cilium") {
+        Write-Host "Cilium is already installed"
+    }
+    else { 
+        Install-Cilium -Version $cilium_chart_version
+    }
 }
 
 # Execute the main function

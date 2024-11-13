@@ -1,3 +1,5 @@
 .generated/
-secrets.yaml
+sealed-secret.crt
+sealed-secret.key
+talos-secrets.yaml
 cluster.json

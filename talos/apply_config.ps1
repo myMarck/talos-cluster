@@ -64,7 +64,7 @@ function BootstrapCluster {
     
     Write-Host "Bootstrap successful."    
 
-    $command = "talosctl -n ${bootstrapIP} kubeconfig"
+    $command = "talosctl -n ${bootstrapIP} kubeconfig -f"
     Invoke-Expression $command
     Write-Host "kubectl configured."            
 }
