@@ -200,7 +200,7 @@ function Main {
     }
     $password = Get-ArgoCDAdminPassword -Namespace $argocd_namespace
     Write-Host "ArgoCD is installed and available in the $argocd_namespace namespace with password $password"
-    New-SealedSecret -Namespace $argocd_namespace -SecretName "sealed-secret"
+    New-SealedSecret -Namespace kube-system -SecretName "sealed-secrets"
     Connect-ArgoCD -Namespace $argocd_namespace -AdminPassword $password
     if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "appproject" -ResourceName "bootstrap") {
         Write-Host "ArgoCD Project 'bootstrap' already exists."
