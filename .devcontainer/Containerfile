@@ -1,11 +1,11 @@
 FROM mcr.microsoft.com/powershell:latest
 
 # https://github.com/siderolabs/talos/releases
-ARG TALOS_VERSION="1.8.2"
+ARG TALOS_VERSION="1.8.3"
 # https://github.com/bitnami-labs/sealed-secrets/releases
 ARG SEALED_SECRETS_VERSION="0.27.2"
 # https://github.com/helm/helm/releases
-ARG HELM_VERSION="3.16.2"
+ARG HELM_VERSION="3.16.3"
 # https://github.com/argoproj/argo-cd/releases
 ARG ARGOCD_VERSION="2.13.0"
 # https://dl.k8s.io/release/stable.txt
