@@ -20,3 +20,7 @@ Before running the script, either use devcontainer or ensure that the following 
 
 ## Reset
   ./talos/reset_cluster.ps1
+
+## Missing
+  * Integration with Proxmox
+  * Make talos/apply_config more robust (move away from timeouts)
