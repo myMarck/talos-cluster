@@ -1,0 +1,9 @@
+# id: f34d250cab73557dc2e70c19713734fe4c79997ff8f13fdea3f8a830ebae2b99
+customization:
+    extraKernelArgs:
+        - -console
+        - console=ttyS0
+    systemExtensions:
+        officialExtensions:
+            - siderolabs/intel-ucode
+            - siderolabs/qemu-guest-agent
