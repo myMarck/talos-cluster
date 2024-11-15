@@ -3,9 +3,9 @@ kind: AppProject
 metadata:
   name: bootstrap
 spec:
-  description: Minium Applications that are part of bootstraping Argo CD.
+  description: Minium Applications that are part of bootstraping K8S.
   sourceRepos:
-  - https://github.com/myMarck/kubernetes-helm.git
+  - https://github.com/myMarck/kubernetes-configuration.git
   destinations:
   - namespace: argocd
     server: https://kubernetes.default.svc

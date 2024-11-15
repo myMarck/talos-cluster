@@ -9,6 +9,6 @@ spec:
     server: https://kubernetes.default.svc
   project: bootstrap
   source:
-    path: ./argocd/
-    repoURL: https://github.com/myMarck/kubernetes-helm.git
+    path: bootstrap
+    repoURL: https://github.com/myMarck/kubernetes-configuration.git
     targetRevision: HEAD
