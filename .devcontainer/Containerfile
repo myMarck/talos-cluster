@@ -8,6 +8,8 @@ ARG SEALED_SECRETS_VERSION="0.27.2"
 ARG HELM_VERSION="3.16.3"
 # https://github.com/argoproj/argo-cd/releases
 ARG ARGOCD_VERSION="2.13.0"
+# https://github.com/istio/istio/releases/
+ARG ISTIO_VERSION="1.24.0"
 # https://dl.k8s.io/release/stable.txt
 ARG KUBECTL_VERSION="1.31.2"
 # https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
@@ -46,5 +48,10 @@ RUN curl -LO "https://github.com/cilium/cilium-cli/releases/download/v${CILIUM_C
 RUN curl -LO "https://github.com/argoproj/argo-cd/releases/download/v${ARGOCD_VERSION}/argocd-linux-amd64" \
     && install -m 555 argocd-linux-amd64 /usr/local/bin/argocd \
     && rm argocd-linux-amd64
+
+RUN curl -LO "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/istioctl-${ISTIO_VERSION}-linux-amd64.tar.gz" \
+    && tar -zxvf "istioctl-${ISTIO_VERSION}-linux-amd64.tar.gz" istioctl \
+    && install -o root -g root -m 0755 istioctl /usr/local/bin/istioctl \
+    && rm -fr istioctl "istioctl-${ISTIO_VERSION}-linux-amd64.tar.gz"
 
 ENV DEBIAN_FRONTEND=dialog

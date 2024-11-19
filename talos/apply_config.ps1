@@ -1,8 +1,6 @@
 # Parse runtime parameters
 param (
     [string]$clusterfile = "./cluster.json",
-    [parameter(mandatory = $true)][String[]]$controlPlaneIps,
-    [parameter(mandatory = $true)][String[]]$workerIps,
     [switch]$h,
     [switch]$help
 )
@@ -17,10 +15,11 @@ $commands = @( "talosctl" )
 $generatedFolderPaths = @( 
     ".generated/manifests",
     ".generated/controlplane",
-    ".generated/worker"
+    ".generated/worker",
+    "/root/.talos"
 )
 
-function ApplyConfig {
+function Deploy-Config {
     param (
         [String[]]$nodeIps,
         [String]$patchFolder,
@@ -31,52 +30,151 @@ function ApplyConfig {
     Foreach-Object {
         $patchFile = $_.FullName
         $nodeIp = $nodeIps[$counter++]
-        $command = "talosctl apply-config --insecure --nodes ${nodeIp} --config-patch `"@${patchFile}`" --file ${baseFile}"
+        $command = -join @("talosctl apply-config "
+            "--insecure "
+            "--nodes ${nodeIp} "
+            "--config-patch `"@${patchFile}`" "
+            "--file ${baseFile}")
         Invoke-Expression $command 
     }    
 }
 
-function UpdateTalosConfig {
+function Join-TalosConfig {
     param (
         [String]$talosConfigPath,
         [String[]]$IPs,
         [String]$type
     )
     $endpointArguments = $IPs -join " "
-    $command = "talosctl --talosconfig ${talosConfigPath} config ${type} $endpointArguments"
+    $command = -join @("talosctl config ${type} "
+        "--talosconfig ${talosConfigPath} "
+        "$endpointArguments")
     Invoke-Expression $command 
 }
 
-function BootstrapCluster {
+function Test-ClusterReadyForBootstrap {
+    [CmdletBinding()]
     param (
-        [string]$bootstrapIP
+        [Parameter(Mandatory = $true)]
+        [string]$TalosConfigPath,
+        [Parameter(Mandatory = $true)]
+        [string]$BootstrapIP
     )
-    Write-Host "Waiting 75 secs for the nodes to come back online before trying to bootstrap cluster..."
-    Start-Sleep -Seconds 75
-    
-    #Attempt to bootstrap until successful
-    do {
-        Start-Sleep -Seconds 3
-        Write-Host "Trying to bootstrap server with IP: ${bootstrapIP} ..."
-        $command = "talosctl bootstrap --nodes ${bootstrapIP}"
-        Invoke-Expression $command 
-    } while ($LASTEXITCODE -ne 0)
-    
-    Write-Host "Bootstrap successful."    
 
-    $command = "talosctl -n ${bootstrapIP} kubeconfig -f"
+    $maxAttempts = 20
+    $attempt = 0
+
+    while ($attempt -lt $maxAttempts) {
+        $attempt++
+        Write-Host "Checking if cluster is ready for bootstrap. $attempt of $maxAttempts"
+
+        try {
+            $command = "talosctl"
+            $arguments = @(
+                "--talosconfig", $TalosConfigPath,
+                "-n", $BootstrapIP,
+                "service", "etcd"
+            )
+
+            # Execute the command and capture output and errors
+            & $command $arguments 2>&1
+
+            # Check the exit code of the command
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Cluster is ready for bootstrap."
+                return $true
+            }
+        } catch {
+            Write-Error "An error occurred: $_"
+        }
+
+        # Sleep for 1 second before the next attempt
+        Start-Sleep -Seconds 1
+    }
+
+    Write-Error "Reached maximum attempts ($maxAttempts) without success."
+    return $false
+}
+
+function Test-ClusterIsDone {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$TalosConfigPath,
+        [Parameter(Mandatory = $true)]
+        [string]$BootstrapIP
+    )
+
+    $maxAttempts = 30
+    $attempt = 0
+
+    while ($attempt -lt $maxAttempts) {
+        $attempt++
+
+        try {
+            # $loginResult = talosctl `
+            # --talosconfig $TalosConfigPath `
+            # -n $BootstrapIP `
+            # health --wait-timeout 3s 2>&1
+            $command = "talosctl --talosconfig $TalosConfigPath -n $BootstrapIP health --wait-timeout 3s 2>&1"
+            $loginResult = Invoke-Expression $command
+
+            # Check the exit code of the command
+            if ($LASTEXITCODE -eq 0) {
+                return $true
+            } else {
+                #this is needed when CNI is disabled
+                if ($loginResult | Select-String -Pattern 'waiting for apid to be ready: OK' -CaseSensitive -SimpleMatch){
+                    Write-Host "Cluster is ready for CNI installation."    
+                    return $true
+                }
+                Write-Host "Checking if cluster is done. $attempt of $maxAttempts."
+            }
+        } catch {
+            Write-Error "An error occurred: $_"
+        }
+
+        # Sleep for 10 second before the next attempt
+        Start-Sleep -Seconds 10
+    }
+
+    Write-Error "Reached maximum attempts ($maxAttempts) without success."
+    return $false
+}
+
+
+function Initialize-Cluster {
+    param (
+        [String]$TalosConfigPath,
+        [string]$BootstrapIP
+    )
+    Write-Host "Trying to bootstrap server with IP: ${BootstrapIP} ..."
+    $command = -join @("talosctl bootstrap "
+        "--talosconfig ${TalosConfigPath} "
+        "-n ${BootstrapIP}")
+    Invoke-Expression $command 
+}
+
+function Sync-ConfigFiles {
+    param (
+        [String]$TalosConfigPath,
+        [String]$TalosHomePath,
+        [string]$BootstrapIP
+    )
+    Copy-Item  $TalosConfigPath "${TalosHomePath}/config"
+    $command = "talosctl -n ${BootstrapIP} kubeconfig -f"
     Invoke-Expression $command
-    Write-Host "kubectl configured."            
+    Write-Host "talosctl and kubectl configured."
 }
 
 function Show-Help {
     Write-Host "Usage: apply_config.ps1 [-clusterfile <path>] [--help]"
     Write-Host ""
     Write-Host "Options:"
-    Write-Host "  -clusterfile       Path to the cluster.json file (default: ./cluster.json)"
-    Write-Host "  -controlPlaneIps   Comma-separated list of control plane node IPs"
-    Write-Host "  -workerIps         Comma-separated list of worker node IPs"
-    Write-Host "  -help -h           Show this help message"
+    Write-Host "  -clusterfile        Path to the cluster.json file (default: ./cluster.json)"
+    Write-Host "  -controlPlaneIps    Comma-separated list of control plane node IPs"
+    Write-Host "  -workerIps          Comma-separated list of worker node IPs"
+    Write-Host "  -help -h            Show this help message"
     Exit
 }
 
@@ -97,20 +195,30 @@ function Main {
         Exit 1
     }
 
+    New-Folders -Folders $generatedFolderPaths
     $bootstrapIP = $clusterData.controlplane.nodes[0].ip.Split('/')[0]
     $staticControlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.ip.Split('/')[0] }
+    $controlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.reset_ip.Split('/')[0] }
     $staticWorkerIPs = $clusterData.worker.nodes | ForEach-Object { $_.ip.Split('/')[0] }
+    $workerIPs = $clusterData.worker.nodes | ForEach-Object { $_.reset_ip.Split('/')[0] }
     $talosConfigPath = "$($generatedFolderPaths[0])/talosconfig"
     $controlPlaneFile = "$($generatedFolderPaths[0])/controlplane.yaml"
     $workerFile = "$($generatedFolderPaths[0])/worker.yaml"
 
-    ApplyConfig -nodeIps $controlPlaneIps -patchFolder $generatedFolderPaths[1] -baseFile $controlPlaneFile
-    ApplyConfig -nodeIps $workerIps -patchFolder $generatedFolderPaths[2] -baseFile $workerFile
+    Deploy-Config -nodeIps $controlPlaneIps -patchFolder $generatedFolderPaths[1] -baseFile $controlPlaneFile
+    Deploy-Config -nodeIps $workerIps -patchFolder $generatedFolderPaths[2] -baseFile $workerFile
 
-    UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticControlPlaneIPs -type "endpoint"
-    UpdateTalosConfig -talosConfigPath $talosConfigPath -IPs $staticWorkerIPs -type "nodes"
+    Join-TalosConfig -talosConfigPath $talosConfigPath -IPs $staticControlPlaneIPs -type "endpoint"
+    Join-TalosConfig -talosConfigPath $talosConfigPath -IPs $staticWorkerIPs -type "node"
 
-    BootstrapCluster -bootstrapIP $bootstrapIP
+    if (Test-ClusterReadyForBootstrap -TalosConfigPath $talosConfigPath -BootstrapIP $bootstrapIP){
+        Initialize-Cluster -TalosConfigPath $talosConfigPath -BootstrapIP $bootstrapIP
+    }
+
+    if (Test-ClusterIsDone -TalosConfigPath $talosConfigPath -BootstrapIP $bootstrapIP) {
+        Sync-ConfigFiles -TalosConfigPath $talosConfigPath -TalosHomePath $generatedFolderPaths[3] -BootstrapIP $bootstrapIP
+        Write-Host "Bootstrap successful."    
+    }
 }
 
 # Execute the main function

@@ -10,9 +10,5 @@
                 "ms-vscode.powershell"
             ]
         }
-    },
-    "remoteEnv": {
-        "TALOSCONFIG": "/workspaces/talos-cluster/.generated/manifests/talosconfig",
-        "KUBECONFIG":  "/workspaces/talos-cluster/.generated/manifests/kubeconfig"
     }
 }

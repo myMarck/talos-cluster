@@ -13,15 +13,15 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 $commands = @( "talosctl" )
 
 # Function to loop over an array of control plane nodes
-function GenerateControlPlanePatches {
+function New-ControlPlanePatches {
     param (
         [string]$outputPath,
         [array]$controlPlaneNodes,
         [string]$vip
     )
-
+    Write-Host "Generate ControlPlane patches."
     foreach ($node in $controlPlaneNodes) {
-        $g_cp_node_file = "${outputPath}\controlplane-$($node.name).yaml"
+        $g_cp_node_file = "${outputPath}/controlplane-$($node.name).yaml"
         @(
             @{
                 op    = "add"
@@ -42,13 +42,14 @@ function GenerateControlPlanePatches {
     }
 }
 
-function GenerateWorkerNodePatches {
+function New-WorkerNodePatches {
     param (
         [string]$outputPath,
         [array]$workerNodes
     )
+    Write-Host "Generate WorkerNode patches."
     foreach ($node in $workerNodes) {
-        $g_cp_node_file = "${outputPath}\worker-$($node.name).yaml"
+        $g_cp_node_file = "${outputPath}/worker-$($node.name).yaml"
         @(
             @{
                 op    = "add"
@@ -64,29 +65,15 @@ function GenerateWorkerNodePatches {
     }
 }
 
-function GenerateTempFolders {
-    param (
-        [array]$folders
-    )
-    foreach ($folder in $folders) {
-        if (-not (Test-Path -Path $folder)) {
-            try {
-                New-Item -ItemType Directory -Path $folder -Force | Out-Null
-            }
-            catch {
-                Write-Error "Failed to create folder: ${folder}"
-                Exit 1
-            }
-        }
-    }
-}
-
-function GenerateTalosSecret {
+function New-TalosSecret {
     param (
         [string]$secretFilePath
     )
-    if (-not (Test-Path -Path $secretFilePath -PathType Leaf)) {
+    if (Test-Path -Path $secretFilePath -PathType Leaf) {
+        Write-Host "Talos secrets already exists."
+    } else {
         try {
+            Write-Host "Generetae Talos secrets."
             $command = "talosctl gen secrets -o ${secretFilePath}"
             Invoke-Expression $command
         }
@@ -97,15 +84,21 @@ function GenerateTalosSecret {
     }
 }
 
-function GenerateTalosConfig {
+function New-TalosConfig {
     param (
         [string]$outputPath,
         [string]$secretFilePath,
         [string]$clusterName,
         [string]$clusterEndpoint
     )
-    $command = "talosctl gen config ${clusterName} ${clusterEndpoint} --force --output ${outputPath} --with-secrets ${secretFilePath} --config-patch @talos/patches/all.yaml --config-patch-control-plane @talos/patches/controlplane.yaml --config-patch-worker @talos/patches/worker.yaml"
-    Invoke-Expression $command
+    Write-Host "Generate Talos configurations."
+    $command = -join @("talosctl gen config ${clusterName} ${clusterEndpoint} "
+       "--force --output ${outputPath} "
+       "--with-secrets ${secretFilePath} "
+       "--config-patch @talos/patches/all.yaml "
+       "--config-patch-control-plane @talos/patches/controlplane.yaml "
+       "--config-patch-worker @talos/patches/worker.yaml")
+    Invoke-Expression $command 2>&1 
 }
 
 # Print help message if script called with --help
@@ -113,8 +106,8 @@ function Show-Help {
     Write-Host "Usage: generate_config.ps1 [-clusterfile <path>] [--help]"
     Write-Host ""
     Write-Host "Options:"
-    Write-Host "  -clusterfile       Path to the cluster.json file (default: ./cluster.json)"
-    Write-Host "  -help -h           Show this help message"
+    Write-Host "  -clusterfile    Path to the cluster.json file (default: ./cluster.json)"
+    Write-Host "  -help -h        Show this help message"
     Exit
 }
 
@@ -147,18 +140,18 @@ function Main {
         ".generated/worker"
     )
 
-    $secretFilePath = "talos-secrets.yaml"
+    $secretFilePath = ".generated/talos-secrets.yaml"
     $controlPlaneNodes = $clusterData.controlplane.nodes
     $controlPlaneVip = $clusterData.controlplane.vip
     $workerNodes = $clusterData.worker.nodes
     $clusterName = $clusterData.clustername
     $clusterEndpoint = "https://${controlPlaneVip}:6443"
 
-    GenerateTempFolders -folders $generatedFolderPaths
-    GenerateControlPlanePatches -outputPath $generatedFolderPaths[1] -controlPlaneNodes $controlPlaneNodes -vip $controlPlaneVip
-    GenerateWorkerNodePatches -outputPath $generatedFolderPaths[2] -workerNodes $workerNodes
-    GenerateTalosSecret -secretFilePath $secretFilePath
-    GenerateTalosConfig -outputPath $generatedFolderPaths[0] -secretFilePath $secretFilePath -clusterName $clusterName -clusterEndpoint $clusterEndpoint
+    New-Folders -folders $generatedFolderPaths
+    New-ControlPlanePatches -outputPath $generatedFolderPaths[1] -controlPlaneNodes $controlPlaneNodes -vip $controlPlaneVip
+    New-WorkerNodePatches -outputPath $generatedFolderPaths[2] -workerNodes $workerNodes
+    New-TalosSecret -secretFilePath $secretFilePath
+    New-TalosConfig -outputPath $generatedFolderPaths[0] -secretFilePath $secretFilePath -clusterName $clusterName -clusterEndpoint $clusterEndpoint
 }
 
 # Execute the main function

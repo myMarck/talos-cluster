@@ -1,26 +1,50 @@
 # Talos cluster installation and configuration
 This repository contains PowerShell scripts to bootstrap a Talos cluster.
-## Prerequisites
 
+## Prerequisites
 Before running the script, either use devcontainer or ensure that the following tools are installed and configured on your machine:
     Powershell: https://github.com/PowerShell/PowerShell 
     talosctl: The Talos control tool. You can install it from the official Talos documentation here.
     kubectl: The Kubernetes command-line tool. You can install it from the official Kubernetes documentation here.
     argocd cli: Argo CD CLI. You can install it from here.
+In the root folder create cluster.json in the following format
+```
+{
+    "clustername": "my-cluster",
+    "controlplane": {
+        "vip": "192.168.0.100",
+        "nodes": [
+            {
+                "name": "cp01.example.dk",
+                "ip": "192.168.0.101/24",
+                "reset_ip": "192.168.0.5"
+            }
+        ]
+    },
+    "worker": {
+        "nodes": [
+            {
+                "name": "worker01.example.dk",
+                "ip": "192.168.0.102/24",
+                "reset_ip": "192.168.0.6"
+            }
+        ]
+    }
+}
+```
 
-    if devcontainer is not used the following env should be set manually
-    export TALOSCONFIG="/workspaces/talos-cluster/.generated/manifests/talosconfig"
-    export KUBECONFIG="/workspaces/talos-cluster/.generated/manifests/kubeconfig"
 
 ## Order
+```
   ./talos/generate_config.ps1
-  ./talos/apply_config -controlPlaneIps <dhcp_ip> -workerIps  <dhcp_ip>,<dhcp_ip>,<dhcp_ip>
+  ./talos/apply_config.ps1
   ./cilium/apply_config.ps1
   ./bootstrap/apply_config.ps1
-
+```
 ## Reset
-  ./talos/reset_cluster.ps1
-
+```
+./talos/reset_cluster.ps1
+```
 ## Missing
   * Integration with Proxmox
-  * Make talos/apply_config more robust (move away from timeouts)
+  * Make talos scripts idempotent.

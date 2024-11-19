@@ -44,6 +44,39 @@ function Test-CommandsExist {
     return $true
 }
 
+function Remove-Folders {
+    param (
+        [array]$Folders
+    )
+    foreach ($folder in $Folders) {
+        if (Test-Path -Path $folder) {
+            try {
+                Remove-Item -Path $folder -Force -Recurse | Out-Null
+            }
+            catch {
+                Write-Error "Failed to delete folder: ${folder}"
+                Exit 1
+            }
+        }
+    }
+}
+function New-Folders {
+    param (
+        [array]$Folders
+    )
+    foreach ($folder in $Folders) {
+        if (-not (Test-Path -Path $folder)) {
+            try {
+                New-Item -ItemType Directory -Path $folder -Force | Out-Null
+            }
+            catch {
+                Write-Error "Failed to create folder: ${folder}"
+                Exit 1
+            }
+        }
+    }
+}
+
 function Test-ResourceExist {
     [CmdletBinding()]
     param (
