@@ -4,7 +4,7 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 $argocd_namespace = "argocd"
 
 # The version of ArgoCD to install
-$argocd_chart_version = "7.7.2"
+$argocd_chart_version = "7.7.3"
 
 # Define the array of commands to validate
 $commands = @( "kubectl", "helm", "argocd", "openssl" )
