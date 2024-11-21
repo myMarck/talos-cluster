@@ -4,7 +4,7 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 $cilium_chart_version = "1.16.4"
 
 # Define the array of commands to validate
-$commands = @( "helm" )
+$commands = @( "helm", "cilium" )
 
 function Install-Cilium {
     [CmdletBinding()]
@@ -12,7 +12,7 @@ function Install-Cilium {
         [Parameter(Mandatory = $true)]
         [string]$Version
     )
-
+    Write-Host "Installing Cilium..."
     $command = "helm install " + `
         "cilium cilium/cilium " + `
         "--version $Version " + `
@@ -29,8 +29,32 @@ function Install-Cilium {
 #        "--set=k8sServiceHost=localhost " + `
 #        "--set=k8sServicePort=7445 " + `
         "--set=cni.exclusive=false " + `
-        "--set=socketLB.hostNamespaceOnly=true" 
-    Invoke-Expression $command
+        "--set=socketLB.hostNamespaceOnly=true " + `
+        "--wait" 
+    Invoke-Expression $command | Out-Null
+}
+
+function Test-Cilium {
+    $maxAttempts = 30
+    $attempt = 0
+
+    while ($attempt -lt $maxAttempts) {
+        $attempt++
+        try {
+            $command = "cilium status --wait --wait-duration=5s"
+            Invoke-Expression $command | Out-Null
+
+            # Check the exit code of the command
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Cilium is working."
+                return
+            } else {
+                Write-Host "Checking if Cilium is done. $attempt of $maxAttempts."
+            }            
+        } catch {
+            Write-Error "An error occurred: $_"
+        }
+    }
 }
 
 function Main {
@@ -42,6 +66,7 @@ function Main {
     else { 
         Install-Cilium -Version $cilium_chart_version
     }
+    Test-Cilium
 }
 
 # Execute the main function
