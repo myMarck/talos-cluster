@@ -17,7 +17,9 @@ function Install-ArgoCD {
         [string]$Version
     )
     Write-Host "Installing ArgoCD..."
-    $command = "helm install argocd argo/argo-cd -n $Namespace --create-namespace --version $Version --wait"
+    $command = 
+    "helm install argocd argo/argo-cd " +
+    "-n $Namespace --create-namespace --version $Version --wait"
     Invoke-Expression $command | Out-Null
 }
 function Get-ArgoCDAdminPassword {
@@ -26,20 +28,22 @@ function Get-ArgoCDAdminPassword {
         [Parameter(Mandatory = $true)]
         [string]$Namespace
     )
-    $command = "kubectl get secret argocd-initial-admin-secret -n $Namespace -o jsonpath=`"{.data.password}`" 2>&1"
+    $command = 
+    "kubectl get secret argocd-initial-admin-secret " + 
+    "-n $Namespace -o jsonpath=`"{.data.password}`" "
     $passwordBase64 = Invoke-Expression $command
     if ($LASTEXITCODE -eq 0) {
         # Decode the base64-encoded password
         $passwordBytes = [System.Convert]::FromBase64String($passwordBase64)
         $password = [System.Text.Encoding]::UTF8.GetString($passwordBytes)
-        return $password
+        return ConvertTo-SecureString $password -AsPlainText
     }
 
     # This is default password if installed via old helm charts
     $command = "kubectl get pods -n $Namespace -l app.kubernetes.io/name=argocd-server -o name"
     $result = Invoke-Expression $command
     # Output format: pod/argocd-server-xxxxxxxxx-xxxxx
-    return $result.Trim().Split('/')[1]
+    return ConvertTo-SecureString $result.Trim().Split('/')[1] -AsPlainText
 }
 
 function Connect-ArgoCD {
@@ -48,15 +52,29 @@ function Connect-ArgoCD {
         [Parameter(Mandatory = $true)]
         [string]$Namespace,
         [Parameter(Mandatory = $true)]
-        [string]$AdminPassword
+        [SecureString]$AdminPassword
     )
+
+    if (Test-ResourceExist -Namespace $Namespace -ResourceType "ingress" -ResourceName "argocd-server") {
+        $command = "kubectl -n $Namespace get ingress -o jsonpath='{.items[0].spec.rules[0].host}'"
+        $hostname = Invoke-Expression $command
+        $connectCommand = 
+        "argocd login $hostname " +
+        "--username admin " +
+        "--password $(ConvertFrom-SecureString -SecureString $AdminPassword -AsPlainText)"
+    }
+    else {
+        $connectCommand = 
+        "argocd login port-forward " +
+        "--port-forward-namespace $Namespace " +
+        "--port-forward " +
+        "--username admin " +
+        "--password $(ConvertFrom-SecureString -SecureString $AdminPassword -AsPlainText) " +
+        "--insecure"
+    }
+    
     try {
-        $loginResult = argocd login port-forward `
-            --port-forward-namespace $Namespace `
-            --port-forward `
-            --username admin `
-            --password $AdminPassword `
-            --insecure  2>&1
+        Invoke-Expression $connectCommand | Out-Null
 
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Failed to log in to ArgoCD. Error: $loginResult"
@@ -137,7 +155,7 @@ function New-Application {
     }
 }
 
-function Sync-Application{
+function Sync-Application {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -199,17 +217,19 @@ function Main {
         Install-ArgoCD -Namespace $argocd_namespace -Version $argocd_chart_version
     }
     $password = Get-ArgoCDAdminPassword -Namespace $argocd_namespace
-    Write-Host "ArgoCD is installed and available in the $argocd_namespace namespace with password $password"
+    Write-Host "ArgoCD is installed and available in the $argocd_namespace namespace with password $(ConvertFrom-SecureString -SecureString $password -AsPlainText)"
     New-SealedSecret -Namespace kube-system -SecretName "sealed-secrets"
     Connect-ArgoCD -Namespace $argocd_namespace -AdminPassword $password
     if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "appproject" -ResourceName "infrastructure") {
         Write-Host "ArgoCD Project 'infrastructure' already exists."
-    } else {
+    }
+    else {
         New-Project -ProjectFile "$PSScriptRoot/infrastructure-app-project.yaml"
     }
     if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "application" -ResourceName "infrastructure") {
         Write-Host "ArgoCD Application 'infrastructure' already exists."
-    } else {
+    }
+    else {
         New-Application -ApplicationFile "https://raw.githubusercontent.com/myMarck/kubernetes-configuration/refs/heads/main/infrastructure-application.yaml"
         Sync-Application -ApplicationName "app-of-apps-infrastructure"
     }
