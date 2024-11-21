@@ -1,7 +1,7 @@
 Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 
 # The version of Cilium to install
-$cilium_chart_version = "1.16.3"
+$cilium_chart_version = "1.16.4"
 
 # Define the array of commands to validate
 $commands = @( "helm" )
