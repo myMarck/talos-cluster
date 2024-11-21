@@ -202,16 +202,16 @@ function Main {
     Write-Host "ArgoCD is installed and available in the $argocd_namespace namespace with password $password"
     New-SealedSecret -Namespace kube-system -SecretName "sealed-secrets"
     Connect-ArgoCD -Namespace $argocd_namespace -AdminPassword $password
-    if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "appproject" -ResourceName "bootstrap") {
-        Write-Host "ArgoCD Project 'bootstrap' already exists."
+    if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "appproject" -ResourceName "infrastructure") {
+        Write-Host "ArgoCD Project 'infrastructure' already exists."
     } else {
         New-Project -ProjectFile "$PSScriptRoot/bootstrap-app-project.yaml"
     }
-    if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "application" -ResourceName "bootstrap") {
-        Write-Host "ArgoCD Application 'bootstrap' already exists."
+    if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "application" -ResourceName "infrastructure") {
+        Write-Host "ArgoCD Application 'infrastructure' already exists."
     } else {
-        New-Application -ApplicationFile "$PSScriptRoot/bootstrap-application.yaml"
-        Sync-Application -ApplicationName "bootstrap"
+        New-Application -ApplicationFile "https://raw.githubusercontent.com/myMarck/kubernetes-configuration/refs/heads/main/infrastructure-application.yaml"
+        Sync-Application -ApplicationName "app-of-apps-infrastructure"
     }
     Disconnect-ArgoCD
 }
