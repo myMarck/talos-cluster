@@ -18,7 +18,7 @@ function Install-ArgoCD {
     )
     Write-Host "Installing ArgoCD..."
     $command = "helm install argocd argo/argo-cd -n $Namespace --create-namespace --version $Version --wait"
-    Invoke-Expression $command
+    Invoke-Expression $command | Out-Null
 }
 function Get-ArgoCDAdminPassword {
     [CmdletBinding()]
@@ -205,7 +205,7 @@ function Main {
     if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "appproject" -ResourceName "infrastructure") {
         Write-Host "ArgoCD Project 'infrastructure' already exists."
     } else {
-        New-Project -ProjectFile "$PSScriptRoot/bootstrap-app-project.yaml"
+        New-Project -ProjectFile "$PSScriptRoot/infrastructure-app-project.yaml"
     }
     if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "application" -ResourceName "infrastructure") {
         Write-Host "ArgoCD Application 'infrastructure' already exists."
