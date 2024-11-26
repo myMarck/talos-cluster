@@ -14,6 +14,10 @@ ARG ISTIO_VERSION="1.24.0"
 ARG KUBECTL_VERSION="1.31.2"
 # https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
 ARG CILIUM_CLI_VERSION="0.16.20"
+# https://github.com/stern/stern/releases
+ARG STERN_VERSION="1.31.0"
+# https://github.com/ahmetb/kubectx/releases
+ARG KUBECTX_VERSION="0.9.5"
 
 # Note: The DEBIAN_FRONTEND export avoids warnings when you go on to work with your container.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
@@ -53,5 +57,15 @@ RUN curl -LO "https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/
     && tar -zxvf "istioctl-${ISTIO_VERSION}-linux-amd64.tar.gz" istioctl \
     && install -o root -g root -m 0755 istioctl /usr/local/bin/istioctl \
     && rm -fr istioctl "istioctl-${ISTIO_VERSION}-linux-amd64.tar.gz"
+
+RUN curl -LO "https://github.com/stern/stern/releases/download/v${STERN_VERSION}/stern_${STERN_VERSION}_linux_amd64.tar.gz" \
+    && tar -zxvf "stern_${STERN_VERSION}_linux_amd64.tar.gz" stern \
+    && install -o root -g root -m 0755 stern /usr/local/bin/stern \
+    && rm -fr stern "stern_${STERN_VERSION}_linux_amd64.tar.gz"
+
+RUN curl -LO "https://github.com/ahmetb/kubectx/releases/download/v${KUBECTX_VERSION}/kubens_v${KUBECTX_VERSION}_linux_x86_64.tar.gz" \
+    && tar -zxvf "kubens_v${KUBECTX_VERSION}_linux_x86_64.tar.gz" kubens \
+    && install -o root -g root -m 0755 kubens /usr/local/bin/kubens \
+    && rm -fr kubens "kubens_v${KUBECTX_VERSION}_linux_x86_64.tar.gz"
 
 ENV DEBIAN_FRONTEND=dialog
