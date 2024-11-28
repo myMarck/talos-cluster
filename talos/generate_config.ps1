@@ -37,7 +37,13 @@ function New-ControlPlanePatches {
                 op    = "add"
                 path  = "/machine/network/hostname"
                 value = $node.name
+            },
+            @{
+                op    = "add"
+                path  = "/machine/certSANs"
+                value = @(($node.ip -split '/')[0] , $vip, $node.name )
             }
+
         ) | ConvertTo-Yaml | Out-File -FilePath $g_cp_node_file -Force
     }
 }
@@ -98,7 +104,7 @@ function New-TalosConfig {
        "--config-patch @talos/patches/all.yaml "
        "--config-patch-control-plane @talos/patches/controlplane.yaml "
        "--config-patch-worker @talos/patches/worker.yaml")
-    Invoke-Expression $command 2>&1 
+    Invoke-Expression $command | Out-Null
 }
 
 # Print help message if script called with --help

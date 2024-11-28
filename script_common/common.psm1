@@ -149,6 +149,8 @@ function Install-Repo {
         [Parameter(Mandatory = $true)]
         [string]$RepoURL
     )
-    $command = "helm repo add $RepoName $RepoURL | out-null"
-    Invoke-Expression $command
+    $command = "helm repo add $RepoName $RepoURL"
+    Invoke-Expression $command | out-null
+    $command = "helm repo update"
+    Invoke-Expression $command | out-null
 }

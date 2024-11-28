@@ -4,7 +4,8 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 $argocd_namespace = "argocd"
 
 # The version of ArgoCD to install
-$argocd_chart_version = "7.7.4"
+# https://artifacthub.io/packages/helm/argo/argo-cd
+$argocd_chart_version = "7.7.5"
 
 # Define the array of commands to validate
 $commands = @( "kubectl", "helm", "argocd", "openssl" )
@@ -92,8 +93,7 @@ function Disconnect-ArgoCD {
     try {
         $logoutResult = argocd logout port-forward `
             --port-forward-namespace argocd `
-            --port-forward `
-            2>&1
+            --port-forward
 
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Failed to log out of ArgoCD. Error: $logoutResult"
@@ -116,8 +116,7 @@ function New-Project {
         $repoResult = argocd proj create `
             --file $ProjectFile `
             --port-forward-namespace argocd `
-            --port-forward `
-            2>&1
+            --port-forward
 
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Failed to create Project. Error: $repoResult"
@@ -140,8 +139,7 @@ function New-Application {
         $appResult = argocd app create `
             --file $ApplicationFile `
             --port-forward-namespace argocd `
-            --port-forward `
-            2>&1
+            --port-forward
 
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Failed to create Application. Error: $appResult"
@@ -164,8 +162,7 @@ function Sync-Application {
     try {
         $syncResult = argocd app sync $ApplicationName `
             --port-forward-namespace argocd `
-            --port-forward `
-            2>&1
+            --port-forward
 
         if ($LASTEXITCODE -ne 0) {
             Write-Error "Failed to sync Application. Error: $syncResult"
@@ -231,7 +228,7 @@ function Main {
     }
     else {
         New-Application -ApplicationFile "https://raw.githubusercontent.com/myMarck/kubernetes-configuration/refs/heads/main/infrastructure-application.yaml"
-        Sync-Application -ApplicationName "app-of-apps-infrastructure"
+        Sync-Application -ApplicationName "infrastructure"
     }
     Disconnect-ArgoCD
 }
