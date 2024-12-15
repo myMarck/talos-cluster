@@ -45,6 +45,9 @@ In the root folder create cluster.json in the following format
 ```
 ./talos/reset_cluster.ps1
 ```
+## Upgrade talos node
+talosctl -n < IP >  upgrade --preserve --image factory.talos.dev/installer/f34d250cab73557dc2e70c19713734fe4c79997ff8f13fdea3f8a830ebae2b99:v< VERSION > --force
+
 ## Missing
   * Integration with Proxmox
   * Make talos scripts idempotent.
