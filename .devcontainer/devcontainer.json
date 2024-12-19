@@ -10,5 +10,9 @@
                 "ms-vscode.powershell"
             ]
         }
+    },
+    "remoteEnv": {
+        "TALOSCONFIG": "/workspaces/talos-cluster/.current/talosconfig",
+        "KUBECONFIG":  "/workspaces/talos-cluster/.current/kubeconfig"
     }
 }

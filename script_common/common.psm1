@@ -43,7 +43,22 @@ function Test-CommandsExist {
     }
     return $true
 }
-
+function Remove-Files {
+    param (
+        [array]$Files
+    )
+    foreach ($file in $Files) {
+        if (Test-Path -Path $file) {
+            try {
+                Remove-Item $file -Force | Out-Null
+            }
+            catch {
+                Write-Error "Failed to delete file: ${file}"
+                Exit 1
+            }
+        }
+    }
+}
 function Remove-Folders {
     param (
         [array]$Folders
@@ -62,9 +77,9 @@ function Remove-Folders {
 }
 function New-Folders {
     param (
-        [array]$Folders
+        [hashtable]$Folders
     )
-    foreach ($folder in $Folders) {
+    foreach ($folder in $Folders.values) {
         if (-not (Test-Path -Path $folder)) {
             try {
                 New-Item -ItemType Directory -Path $folder -Force | Out-Null

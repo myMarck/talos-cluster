@@ -5,7 +5,7 @@ $argocd_namespace = "argocd"
 
 # The version of ArgoCD to install
 # https://artifacthub.io/packages/helm/argo/argo-cd
-$argocd_chart_version = "7.7.5"
+$argocd_chart_version = "7.7.10"
 
 # Define the array of commands to validate
 $commands = @( "kubectl", "helm", "argocd", "openssl" )
@@ -182,8 +182,8 @@ function New-SealedSecret {
         [string]$Namespace,
         [Parameter(Mandatory = $true)]
         [string]$SecretName,
-        [string]$PrivateKey = "sealed-secret.key",
-        [string]$Certificate = "sealed-secret.crt"
+        [string]$PrivateKey = ".current/sealed-secret.key",
+        [string]$Certificate = ".current/sealed-secret.crt"
     )
 
     if (-not (Test-Path -Path $PrivateKey -PathType Leaf)) {

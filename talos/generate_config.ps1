@@ -17,7 +17,8 @@ function New-ControlPlanePatches {
     param (
         [string]$outputPath,
         [array]$controlPlaneNodes,
-        [string]$vip
+        [string]$vip,
+        [string]$DNS
     )
     Write-Host "Generate ControlPlane patches."
     foreach ($node in $controlPlaneNodes) {
@@ -41,7 +42,7 @@ function New-ControlPlanePatches {
             @{
                 op    = "add"
                 path  = "/machine/certSANs"
-                value = @(($node.ip -split '/')[0] , $vip, $node.name )
+                value = @(($node.ip -split '/')[0] , $vip, $node.name, $DNS )
             }
 
         ) | ConvertTo-Yaml | Out-File -FilePath $g_cp_node_file -Force
@@ -77,7 +78,8 @@ function New-TalosSecret {
     )
     if (Test-Path -Path $secretFilePath -PathType Leaf) {
         Write-Host "Talos secrets already exists."
-    } else {
+    }
+    else {
         try {
             Write-Host "Generetae Talos secrets."
             $command = "talosctl gen secrets -o ${secretFilePath}"
@@ -99,11 +101,11 @@ function New-TalosConfig {
     )
     Write-Host "Generate Talos configurations."
     $command = -join @("talosctl gen config ${clusterName} ${clusterEndpoint} "
-       "--force --output ${outputPath} "
-       "--with-secrets ${secretFilePath} "
-       "--config-patch @talos/patches/all.yaml "
-       "--config-patch-control-plane @talos/patches/controlplane.yaml "
-       "--config-patch-worker @talos/patches/worker.yaml")
+        "--force --output ${outputPath} "
+        "--with-secrets ${secretFilePath} "
+        "--config-patch @talos/patches/all.yaml "
+        "--config-patch-control-plane @talos/patches/controlplane.yaml "
+        "--config-patch-worker @talos/patches/worker.yaml")
     Invoke-Expression $command | Out-Null
 }
 
@@ -140,24 +142,26 @@ function Main {
     }
 
     # All things are validated and good to go
-    $generatedFolderPaths = @( 
-        ".generated/manifests",
-        ".generated/controlplane",
-        ".generated/worker"
-    )
+    $folders = @{ 
+        "generated"    = ".generated"
+        "manifest"     = ".generated/manifests"
+        "controlplane" = ".generated/controlplane"
+        "worker"       = ".generated/worker"
+    }
 
-    $secretFilePath = ".generated/talos-secrets.yaml"
+    $secretFilePath = "$($folders["generated"])/talos-secrets.yaml"
     $controlPlaneNodes = $clusterData.controlplane.nodes
     $controlPlaneVip = $clusterData.controlplane.vip
+    $controlPlaneDNS = $clusterData.controlplane.vDNS
     $workerNodes = $clusterData.worker.nodes
     $clusterName = $clusterData.clustername
     $clusterEndpoint = "https://${controlPlaneVip}:6443"
 
-    New-Folders -folders $generatedFolderPaths
-    New-ControlPlanePatches -outputPath $generatedFolderPaths[1] -controlPlaneNodes $controlPlaneNodes -vip $controlPlaneVip
-    New-WorkerNodePatches -outputPath $generatedFolderPaths[2] -workerNodes $workerNodes
+    New-Folders -Folders $folders
+    New-ControlPlanePatches -outputPath $folders["controlplane"] -controlPlaneNodes $controlPlaneNodes -vip $controlPlaneVip -DNS $controlPlaneDNS
+    New-WorkerNodePatches -outputPath $folders["worker"] -workerNodes $workerNodes
     New-TalosSecret -secretFilePath $secretFilePath
-    New-TalosConfig -outputPath $generatedFolderPaths[0] -secretFilePath $secretFilePath -clusterName $clusterName -clusterEndpoint $clusterEndpoint
+    New-TalosConfig -outputPath $folders["manifest"] -secretFilePath $secretFilePath -clusterName $clusterName -clusterEndpoint $clusterEndpoint
 }
 
 # Execute the main function

@@ -12,12 +12,13 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 # Define the array of commands to validate
 $commands = @( "talosctl" )
 
-$generatedFolderPaths = @( 
-    ".generated/manifests",
-    ".generated/controlplane",
-    ".generated/worker",
-    "/root/.talos"
-)
+$folders = @{ 
+    "generated"    = ".generated"
+    "manifest"     = ".generated/manifests"
+    "controlplane" = ".generated/controlplane"
+    "worker"       = ".generated/worker"
+    "current"      = ".current"
+}
 
 function Deploy-Config {
     param (
@@ -35,33 +36,36 @@ function Deploy-Config {
             "--nodes ${nodeIp} "
             "--config-patch `"@${patchFile}`" "
             "--file ${baseFile}")
-        Invoke-Expression $command 
+        Invoke-Expression $command
     }    
 }
 
 function Join-TalosConfig {
     param (
-        [String]$talosConfigPath,
+        [Parameter(Mandatory = $true)]
+        [string]$TalosConfigFile,
+        [Parameter(Mandatory = $true)]
         [String[]]$IPs,
-        [String]$type
+        [Parameter(Mandatory = $true)]
+        [String]$Type
     )
     $endpointArguments = $IPs -join " "
     $command = -join @("talosctl config ${type} "
-        "--talosconfig ${talosConfigPath} "
+        "--talosconfig ${TalosConfigFile} "
         "$endpointArguments")
-    Invoke-Expression $command 
+    Invoke-Expression $command
 }
 
 function Test-ClusterReadyForBootstrap {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$TalosConfigPath,
+        [string]$TalosConfigFile,
         [Parameter(Mandatory = $true)]
         [string]$BootstrapIP
     )
 
-    $maxAttempts = 20
+    $maxAttempts = 30
     $attempt = 0
 
     while ($attempt -lt $maxAttempts) {
@@ -71,7 +75,7 @@ function Test-ClusterReadyForBootstrap {
         try {
             $command = "talosctl"
             $arguments = @(
-                "--talosconfig", $TalosConfigPath,
+                "--talosconfig", $TalosConfigFile,
                 "-n", $BootstrapIP,
                 "service", "etcd"
             )
@@ -84,12 +88,13 @@ function Test-ClusterReadyForBootstrap {
                 Write-Host "Cluster is ready for bootstrap."
                 return $true
             }
-        } catch {
+        }
+        catch {
             Write-Error "An error occurred: $_"
         }
 
-        # Sleep for 1 second before the next attempt
-        Start-Sleep -Seconds 1
+        # Sleep for 2 second before the next attempt
+        Start-Sleep -Seconds 2
     }
 
     Write-Error "Reached maximum attempts ($maxAttempts) without success."
@@ -100,7 +105,7 @@ function Test-ClusterIsDone {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$TalosConfigPath,
+        [string]$TalosConfigFile,
         [Parameter(Mandatory = $true)]
         [string]$BootstrapIP
     )
@@ -113,24 +118,26 @@ function Test-ClusterIsDone {
 
         try {
             # $loginResult = talosctl `
-            # --talosconfig $TalosConfigPath `
+            # --talosconfig $TalosConfigFile `
             # -n $BootstrapIP `
             # health --wait-timeout 3s 2>&1
-            $command = "talosctl --talosconfig $TalosConfigPath -n $BootstrapIP health --wait-timeout 3s 2>&1"
+            $command = "talosctl --talosconfig $TalosConfigFile -n $BootstrapIP health --wait-timeout 3s 2>&1"
             $loginResult = Invoke-Expression $command
 
             # Check the exit code of the command
             if ($LASTEXITCODE -eq 0) {
                 return $true
-            } else {
+            }
+            else {
                 #this is needed when CNI is disabled
-                if ($loginResult | Select-String -Pattern 'waiting for apid to be ready: OK' -CaseSensitive -SimpleMatch){
+                if ($loginResult | Select-String -Pattern 'waiting for apid to be ready: OK' -CaseSensitive -SimpleMatch) {
                     Write-Host "Cluster is ready for CNI installation."    
                     return $true
                 }
                 Write-Host "Checking if cluster is done. $attempt of $maxAttempts."
             }
-        } catch {
+        }
+        catch {
             Write-Error "An error occurred: $_"
         }
 
@@ -145,24 +152,26 @@ function Test-ClusterIsDone {
 
 function Initialize-Cluster {
     param (
-        [String]$TalosConfigPath,
+        [String]$TalosConfigFile,
         [string]$BootstrapIP
     )
     Write-Host "Trying to bootstrap server with IP: ${BootstrapIP} ..."
     $command = -join @("talosctl bootstrap "
-        "--talosconfig ${TalosConfigPath} "
+        "--talosconfig ${TalosConfigFile} "
         "-n ${BootstrapIP}")
     Invoke-Expression $command 
 }
 
 function Sync-ConfigFiles {
     param (
-        [String]$TalosConfigPath,
-        [String]$TalosHomePath,
+        [String]$TalosConfigFile,
+        [String]$TalosSecretsFile,
+        [String]$CurrentFolder,
         [string]$BootstrapIP
     )
-    Copy-Item  $TalosConfigPath "${TalosHomePath}/config"
-    $command = "talosctl -n ${BootstrapIP} kubeconfig -f"
+    Copy-Item $TalosConfigFile -Destination ${CurrentFolder}
+    Copy-Item $TalosSecretsFile -Destination ${CurrentFolder}
+    $command = "talosctl -n ${BootstrapIP} kubeconfig ${CurrentFolder}/kubeconfig -f"
     Invoke-Expression $command
     Write-Host "talosctl and kubectl configured."
 }
@@ -195,28 +204,29 @@ function Main {
         Exit 1
     }
 
-    New-Folders -Folders $generatedFolderPaths
+    New-Folders -Folders $folders
     $bootstrapIP = $clusterData.controlplane.nodes[0].ip.Split('/')[0]
     $staticControlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.ip.Split('/')[0] }
     $controlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.reset_ip.Split('/')[0] }
     $staticWorkerIPs = $clusterData.worker.nodes | ForEach-Object { $_.ip.Split('/')[0] }
     $workerIPs = $clusterData.worker.nodes | ForEach-Object { $_.reset_ip.Split('/')[0] }
-    $talosConfigPath = "$($generatedFolderPaths[0])/talosconfig"
-    $controlPlaneFile = "$($generatedFolderPaths[0])/controlplane.yaml"
-    $workerFile = "$($generatedFolderPaths[0])/worker.yaml"
+    $secretFilePath = "$($folders["generated"])/talos-secrets.yaml"
+    $talosConfigFile = "$($folders["manifest"])/talosconfig"
+    $controlPlaneFile = "$($folders["manifest"])/controlplane.yaml"
+    $workerFile = "$($folders["manifest"])/worker.yaml"
 
-    Deploy-Config -nodeIps $controlPlaneIps -patchFolder $generatedFolderPaths[1] -baseFile $controlPlaneFile
-    Deploy-Config -nodeIps $workerIps -patchFolder $generatedFolderPaths[2] -baseFile $workerFile
+    Deploy-Config -nodeIps $controlPlaneIps -patchFolder $folders["controlplane"] -baseFile $controlPlaneFile
+    Deploy-Config -nodeIps $workerIps -patchFolder $folders["worker"] -baseFile $workerFile
 
-    Join-TalosConfig -talosConfigPath $talosConfigPath -IPs $staticControlPlaneIPs -type "endpoint"
-    Join-TalosConfig -talosConfigPath $talosConfigPath -IPs $staticWorkerIPs -type "node"
+    Join-TalosConfig -TalosConfigFile $talosConfigFile -IPs $staticControlPlaneIPs -Type "endpoint"
+    Join-TalosConfig -TalosConfigFile $talosConfigFile -IPs $staticWorkerIPs -Type "node"
 
-    if (Test-ClusterReadyForBootstrap -TalosConfigPath $talosConfigPath -BootstrapIP $bootstrapIP){
-        Initialize-Cluster -TalosConfigPath $talosConfigPath -BootstrapIP $bootstrapIP
+    if (Test-ClusterReadyForBootstrap -TalosConfigFile $talosConfigFile -BootstrapIP $bootstrapIP) {
+        Initialize-Cluster -TalosConfigFile $talosConfigFile -BootstrapIP $bootstrapIP
     }
 
-    if (Test-ClusterIsDone -TalosConfigPath $talosConfigPath -BootstrapIP $bootstrapIP) {
-        Sync-ConfigFiles -TalosConfigPath $talosConfigPath -TalosHomePath $generatedFolderPaths[3] -BootstrapIP $bootstrapIP
+    if (Test-ClusterIsDone -TalosConfigFile $talosConfigFile -BootstrapIP $bootstrapIP) {
+        Sync-ConfigFiles -TalosConfigFile $talosConfigFile -TalosSecretsFile $secretFilePath -CurrentFolder $folders["current"] -BootstrapIP $bootstrapIP
         Write-Host "Bootstrap successful."    
     }
 }

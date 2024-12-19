@@ -10,10 +10,9 @@ Import-Module $PSScriptRoot\..\script_common\common.psm1 -Force
 # Define the array of commands to validate
 $commands = @( "talosctl" )
 
-$generatedFolderPaths = @( 
-    "/root/.talos",
-    "/root/.kube"
-)
+$folders = @{ 
+    "current" = ".current"
+  }
 
 # Function to extract IPs from control plane nodes and workers
 function Get-ClusterIPs {
@@ -60,6 +59,12 @@ function Main {
         Show-Help
     }
 
+    $files = @(
+        "$($folders["current"])/talosconfig",
+        "$($folders["current"])/kubeconfig",
+        "$($folders["current"])/talos-secrets.yaml"
+    )
+    
     # Parse the cluster.json file
     try {
         $clusterData = Get-Content -Path $clusterfile | ConvertFrom-Json
@@ -75,7 +80,7 @@ function Main {
     # Execute talosctl reset command
     $command = "talosctl --nodes ${ipsString} reset --timeout 60s --reboot --graceful=false"
     Invoke-Expression $command
-    Remove-Folders -Folders $generatedFolderPaths
+    Remove-Files -Files $files
 }
 
 # Execute the main function

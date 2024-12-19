@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/powershell:latest
 
 # https://github.com/siderolabs/talos/releases
-ARG TALOS_VERSION="1.8.4"
+ARG TALOS_VERSION="1.9.0"
 # https://github.com/bitnami-labs/sealed-secrets/releases
 ARG SEALED_SECRETS_VERSION="0.27.3"
 # https://github.com/helm/helm/releases

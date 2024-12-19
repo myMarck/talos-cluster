@@ -1,5 +1,3 @@
-.generated/
-sealed-secret.crt
-sealed-secret.key
-talos-secrets.yaml
+.generated
+.current
 cluster.json
