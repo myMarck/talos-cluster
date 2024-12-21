@@ -221,7 +221,7 @@ function Main {
         Write-Host "ArgoCD Project 'infrastructure' already exists."
     }
     else {
-        New-Project -ProjectFile "$PSScriptRoot/infrastructure-app-project.yaml"
+        New-Project -ProjectFile "https://raw.githubusercontent.com/myMarck/kubernetes-configuration/refs/heads/main/manifests/argocd/infrastructure-app-project.yaml"
     }
     if (Test-ResourceExist -Namespace $argocd_namespace -ResourceType "application" -ResourceName "infrastructure") {
         Write-Host "ArgoCD Application 'infrastructure' already exists."
