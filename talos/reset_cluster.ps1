@@ -14,27 +14,6 @@ $folders = @{
     "current" = ".current"
   }
 
-# Function to extract IPs from control plane nodes and workers
-function Get-ClusterIPs {
-    param (
-        [PSCustomObject]$clusterData
-    )
-
-    $ips = @()
-
-    # Extract IPs from control plane nodes
-    foreach ($node in $clusterData.controlplane.nodes) {
-        $ips += $node.ip.Split('/')[0]
-    }
-
-    # Extract IPs from workers
-    foreach ($worker in $clusterData.worker.nodes) {
-        $ips += $worker.ip.Split('/')[0]
-    }
-
-    return $ips
-}
-
 function Show-Help {
     Write-Host "Usage: reset_cluster.ps1 [-clusterfile <path>] [-help]"
     Write-Host ""
@@ -74,12 +53,19 @@ function Main {
         Exit 1
     }
 
-    $ips = Get-ClusterIPs -clusterData $clusterData
-    $ipsString = $ips -join ","
+    $staticWorkerIPs = $clusterData.worker.nodes | ForEach-Object { $_.ip.Split('/')[0] }
+    $staticControlPlaneIPs = $clusterData.controlplane.nodes | ForEach-Object { $_.ip.Split('/')[0] }
+
+    $workerIPs = $staticWorkerIPs -join ","
+    $controlPlaneIPs = $staticControlPlaneIPs -join ","
 
     # Execute talosctl reset command
-    $command = "talosctl --nodes ${ipsString} reset --timeout 60s --reboot --graceful=false"
+    $command = "talosctl --nodes ${workerIPs} reset --timeout 60s --reboot --graceful=false --debug --system-labels-to-wipe /dev/sdb-1 --user-disks-to-wipe /dev/sdc,/dev/sdd"
     Invoke-Expression $command
+
+    $command = "talosctl --nodes ${controlPlaneIPs} reset --timeout 60s --reboot --graceful=false --debug"
+    Invoke-Expression $command
+
     Remove-Files -Files $files
 }
 
