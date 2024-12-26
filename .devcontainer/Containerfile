@@ -2,8 +2,6 @@ FROM mcr.microsoft.com/powershell:latest
 
 # https://github.com/siderolabs/talos/releases
 ARG TALOS_VERSION="1.9.0"
-# https://github.com/bitnami-labs/sealed-secrets/releases
-ARG SEALED_SECRETS_VERSION="0.27.3"
 # https://github.com/helm/helm/releases
 ARG HELM_VERSION="3.16.4"
 # https://github.com/argoproj/argo-cd/releases
@@ -27,11 +25,6 @@ RUN  curl -LO "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kub
 RUN  curl -LO "https://github.com/siderolabs/talos/releases/download/v${TALOS_VERSION}/talosctl-linux-amd64" \
     && install -o root -g root -m 0755 talosctl-linux-amd64 /usr/local/bin/talosctl \
     && rm -fr talosctl-linux-amd64
-
-RUN  curl -LO  "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${SEALED_SECRETS_VERSION}/kubeseal-${SEALED_SECRETS_VERSION}-linux-amd64.tar.gz" \
-    && tar -zxvf "kubeseal-${SEALED_SECRETS_VERSION}-linux-amd64.tar.gz" kubeseal \
-    && install -o root -g root -m 0755 kubeseal /usr/local/bin/kubeseal \
-    && rm -rf kubeseal "kubeseal-${SEALED_SECRETS_VERSION}-linux-amd64.tar.gz"
 
 RUN  curl -LO  "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" \
     && tar -zxvf "helm-v${HELM_VERSION}-linux-amd64.tar.gz" linux-amd64/helm \
