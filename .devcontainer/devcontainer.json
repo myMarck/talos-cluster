@@ -12,7 +12,9 @@
         }
     },
     "remoteEnv": {
-        "TALOSCONFIG": "/workspaces/talos-cluster/.current/talosconfig",
-        "KUBECONFIG":  "/workspaces/talos-cluster/.current/kubeconfig"
-    }
+        "TALOSCONFIG": "/workspaces/talos-cluster/.current/talosconfig"
+    },
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kube,target=/root/.kube,type=bind"
+    ]
 }

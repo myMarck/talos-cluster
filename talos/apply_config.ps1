@@ -171,7 +171,7 @@ function Sync-ConfigFiles {
     )
     Copy-Item $TalosConfigFile -Destination ${CurrentFolder}
     Copy-Item $TalosSecretsFile -Destination ${CurrentFolder}
-    $command = "talosctl -n ${BootstrapIP} kubeconfig ${CurrentFolder}/kubeconfig -f"
+    $command = "talosctl -n ${BootstrapIP} kubeconfig -f"
     Invoke-Expression $command
     Write-Host "talosctl and kubectl configured."
 }

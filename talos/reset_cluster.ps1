@@ -40,7 +40,6 @@ function Main {
 
     $files = @(
         "$($folders["current"])/talosconfig",
-        "$($folders["current"])/kubeconfig",
         "$($folders["current"])/talos-secrets.yaml"
     )
     
