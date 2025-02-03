@@ -13,7 +13,7 @@
 - op: add
   path: /machine/install/image
   value:
-    factory.talos.dev/installer/f34d250cab73557dc2e70c19713734fe4c79997ff8f13fdea3f8a830ebae2b99:v1.9.2
+    factory.talos.dev/installer/f34d250cab73557dc2e70c19713734fe4c79997ff8f13fdea3f8a830ebae2b99:v1.9.3
 - op: add
   path: /machine/kubelet/extraArgs
   value:
