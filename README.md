@@ -51,3 +51,6 @@ talosctl -n < IP >  upgrade --preserve --image factory.talos.dev/installer/f34d2
 ## Missing
   * Integration with Proxmox
   * Make talos scripts idempotent.
+
+## Download image
+curl https://factory.talos.dev/image/f34d250cab73557dc2e70c19713734fe4c79997ff8f13fdea3f8a830ebae2b99/v< VERSION >/metal-amd64.iso
