@@ -5,7 +5,7 @@ $argocd_namespace = "argocd"
 
 # The version of ArgoCD to install
 # https://artifacthub.io/packages/helm/argo/argo-cd
-$argocd_chart_version = "7.8.2"
+$argocd_chart_version = "7.8.7"
 
 # Define the array of commands to validate
 $commands = @( "kubectl", "helm", "argocd", "openssl" )
