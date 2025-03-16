@@ -33,7 +33,6 @@ In the root folder create cluster.json in the following format
 }
 ```
 
-
 ## Order
 ```
   ./talos/generate_config.ps1
